@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交通部觀光署組織架構互動圖表</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px 32px;
+      font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+      background-color: #f3f5f8;
+      color: #2c3545;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto 20px auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    .header-left {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .sub-kicker {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #6b7688;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .main-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #1f2937;
+      margin: 0 0 8px 0;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle-desc {
+      font-size: 0.92rem;
+      color: #5b6577;
+      margin: 0;
+    }
+
+    .tab-switcher {
+      display: inline-flex;
+      background-color: #e4e8f0;
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 16px;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #5b6577;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: #1f2937;
+    }
+
+    .tab-btn.active {
+      background-color: #ffffff;
+      color: #4150a0;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    }
+
+    .chart-card {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e2e7ef;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+      padding: 14px 24px;
+      border-bottom: 1px solid #ebeff5;
+      background-color: #fafbfd;
+      font-size: 0.88rem;
+      color: #374151;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      transition: background-color 0.25s ease;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: calc(100vh - 210px);
+      min-height: 650px;
+      max-width: 100%;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .chart-container.active {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 16px;
+      }
+
+      .tab-switcher {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="page-header">
+    <div class="header-left">
+      <div class="sub-kicker">TOURISM ADMINISTRATION · ORGANIZATION</div>
+      <h1 class="main-title">交通部觀光署組織架構</h1>
+      <p class="subtitle-desc" id="subtitle-desc">點擊扇形區塊聚焦檢視該部門，點擊中央圓心或使用右上角縮放工具還原；滑鼠滾輪可縮放檢視細節。</p>
+    </div>
+
+    <div class="tab-switcher" role="tablist">
+      <button type="button" class="tab-btn active" id="btn-sunburst" onclick="switchTab('sunburst')">旭日圖</button>
+      <button type="button" class="tab-btn" id="btn-force" onclick="switchTab('force')">力導向網路圖</button>
+      <button type="button" class="tab-btn" id="btn-partition" onclick="switchTab('partition')">水平分割圖</button>
+    </div>
+  </header>
+
+  <main class="chart-card">
+    <div class="legend-bar">
+      <div class="legend-item">
+        <span class="legend-dot" id="dot-business" style="background-color: #4150a0;"></span>
+        <span>業務單位 (6)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" id="dot-staff" style="background-color: #2c7a7b;"></span>
+        <span>幕僚單位 (5)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" id="dot-task" style="background-color: #d97706;"></span>
+        <span>任務編組 (2)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" id="dot-scenic" style="background-color: #2b6cb0;"></span>
+        <span>所屬機關 / 國家風景區管理處 (13)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot" id="dot-overseas" style="background-color: #b83280;"></span>
+        <span>駐外辦事處 (15)</span>
+      </div>
+    </div>
+
+    <!-- 三個獨立圖表容器 -->
+    <div id="chart-sunburst" class="chart-container active"></div>
+    <div id="chart-force" class="chart-container"></div>
+    <div id="chart-partition" class="chart-container"></div>
+  </main>
+
+  <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/hierarchy.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/themes/ResponsiveMax.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/themes/Adaptive.js"></script>
+
+  <script>
+    const initialized = {
+      sunburst: false,
+      force: false,
+      partition: false
+    };
+
+    const chartConfigs = {
+      sunburst: {
+        desc: "點擊扇形區塊聚焦檢視該部門，點擊中央圓心或使用右上角縮放工具還原；滑鼠滾輪可縮放檢視細節。",
+        colors: { business: "#4150a0", staff: "#2c7a7b", task: "#d97706", scenic: "#2b6cb0", overseas: "#b83280" }
+      },
+      force: {
+        desc: "點擊類別節點展開或收合，拖曳節點探索組織關係；滑鼠移至節點可查看完整名稱。",
+        colors: { business: "#5566a6", staff: "#77838f", task: "#a66c78", scenic: "#4f649e", overseas: "#9e6b7c" }
+      },
+      partition: {
+        desc: "點擊區塊可深入檢視各部門與所屬單位細節，再次點擊可返回上一層；滑鼠移至區塊可查看名稱。",
+        colors: { business: "#4150a0", staff: "#2c7a7b", task: "#d97706", scenic: "#2b6cb0", overseas: "#b83280" }
+      }
+    };
+
+    // 1. 初始化旭日圖
+    function initSunburst() {
+      if (initialized.sunburst) return;
+      initialized.sunburst = true;
+
+      var root = am5.Root.new("chart-sunburst");
+      root.setThemes([
+        am5themes_Animated.new(root),
+        am5themes_ResponsiveMax.new(root)
+      ]);
+
+      var chart = root.container.children.push(
+        am5.SerialChartContainer.new(root, {
+          width: am5.p100,
+          height: am5.p100
+        })
+      );
+
+      chart.zoomableContainer.setAll({
+        wheelable: true,
+        pinchZoom: true
+      });
+
+      chart.set("zoomTools", am5.ZoomTools.new(root, {}));
+
+      chart.zoomableContainer.contents.children.push(am5.Label.new(root, {
+        text: "交通部\n[#4150a0]觀光署[/]\n[fontSize:13px #6b7688]組織架構[/]",
+        textAlign: "center",
+        x: am5.p50,
+        y: am5.p50,
+        centerX: am5.p50,
+        centerY: am5.p50,
+        fontSize: 22,
+        fontWeight: "700",
+        fontFamily: "Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif",
+        fill: root.interfaceColors.get("text")
+      }));
+
+      var series = chart.series.push(am5hierarchy.Sunburst.new(root, {
+        singleBranchOnly: true,
+        downDepth: 2,
+        initialDepth: 2,
+        topDepth: 1,
+        innerRadius: 95,
+        valueField: "value",
+        categoryField: "name",
+        childDataField: "children"
+      }));
+
+      series.nodes.template.setAll({
+        tooltipText: "{category}"
+      });
+
+      series.slices.template.setAll({
+        templateField: "nodeSettings",
+        strokeWidth: 1,
+        stroke: am5.color(0xffffff)
+      });
+
+      series.labels.template.setAll({
+        paddingLeft: 8,
+        paddingRight: 8,
+        paddingTop: 4,
+        paddingBottom: 4,
+        baseRadius: am5.p100,
+        centerX: am5.p100,
+        textAlign: "start",
+        fontSize: 12,
+        fontFamily: "Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif"
+      });
+
+      series.labels.template.adapters.add("fill", function (fill, target) {
+        var slice = target.dataItem && target.dataItem.get("slice");
+        var sliceFill = slice && slice.get("fill");
+        return sliceFill ? am5.Color.alternative(sliceFill, am5.color(0xffffff), am5.color(0x1f2937)) : fill;
+      });
+
+      var data = [{
+        name: "觀光署",
+        nodeSettings: { fill: am5.color(0xaaaaaa) },
+        children: [
+          {
+            name: "業務單位",
+            nodeSettings: { fill: am5.color(0x4150a0) },
+            children: [
+              { name: "企劃組", nodeSettings: { fill: am5.color(0x5a6acf) }, value: 1 },
+              { name: "旅遊推廣組", nodeSettings: { fill: am5.color(0x6c7be0) }, value: 1 },
+              { name: "旅宿組", nodeSettings: { fill: am5.color(0x7e8ce8) }, value: 1 },
+              { name: "景區發展組", nodeSettings: { fill: am5.color(0x909df0) }, value: 1 },
+              { name: "國際組", nodeSettings: { fill: am5.color(0xa2aef5) }, value: 1 },
+              { name: "數位行銷組", nodeSettings: { fill: am5.color(0xb4bffa) }, value: 1 }
+            ]
+          },
+          { value: 0.15, nodeSettings: { fill: am5.color(0xffffff) } },
+          {
+            name: "幕僚單位",
+            nodeSettings: { fill: am5.color(0x2c7a7b) },
+            children: [
+              { name: "秘書室", nodeSettings: { fill: am5.color(0x319795) }, value: 1 },
+              { name: "人事室", nodeSettings: { fill: am5.color(0x38b2ac) }, value: 1 },
+              { name: "政風室", nodeSettings: { fill: am5.color(0x4fd1c5) }, value: 1 },
+              { name: "主計室", nodeSettings: { fill: am5.color(0x81e6d9) }, value: 1 },
+              { name: "資訊室", nodeSettings: { fill: am5.color(0xb2f5ea) }, value: 1 }
+            ]
+          },
+          { value: 0.15, nodeSettings: { fill: am5.color(0xffffff) } },
+          {
+            name: "任務編組",
+            nodeSettings: { fill: am5.color(0xd97706) },
+            children: [
+              { name: "法制科", nodeSettings: { fill: am5.color(0xf59e0b) }, value: 1 },
+              { name: "公關科", nodeSettings: { fill: am5.color(0xfbbf24) }, value: 1 }
+            ]
+          },
+          { value: 0.15, nodeSettings: { fill: am5.color(0xffffff) } },
+          {
+            name: "所屬機關",
+            nodeSettings: { fill: am5.color(0x2b6cb0) },
+            children: [
+              { name: "東北角及宜蘭海岸風管處", nodeSettings: { fill: am5.color(0x3182ce) }, value: 1 },
+              { name: "北海岸及觀音山風管處", nodeSettings: { fill: am5.color(0x3b82f6) }, value: 1 },
+              { name: "參山風管處", nodeSettings: { fill: am5.color(0x4299e1) }, value: 1 },
+              { name: "日月潭風管處", nodeSettings: { fill: am5.color(0x60a5fa) }, value: 1 },
+              { name: "阿里山風管處", nodeSettings: { fill: am5.color(0x63b3ed) }, value: 1 },
+              { name: "雲嘉南濱海風管處", nodeSettings: { fill: am5.color(0x7cc4fa) }, value: 1 },
+              { name: "西拉雅風管處", nodeSettings: { fill: am5.color(0x90cdf4) }, value: 1 },
+              { name: "茂林風管處", nodeSettings: { fill: am5.color(0x93c5fd) }, value: 1 },
+              { name: "大鵬灣風管處", nodeSettings: { fill: am5.color(0xa3bffa) }, value: 1 },
+              { name: "花東縱谷風管處", nodeSettings: { fill: am5.color(0xb3d4fc) }, value: 1 },
+              { name: "東部海岸風管處", nodeSettings: { fill: am5.color(0xbee3f8) }, value: 1 },
+              { name: "澎湖風管處", nodeSettings: { fill: am5.color(0xc3dafe) }, value: 1 },
+              { name: "馬祖風管處", nodeSettings: { fill: am5.color(0xdbeafe) }, value: 1 }
+            ]
+          },
+          { value: 0.15, nodeSettings: { fill: am5.color(0xffffff) } },
+          {
+            name: "駐外辦事處",
+            nodeSettings: { fill: am5.color(0xb83280) },
+            children: [
+              { name: "東京辦事處", nodeSettings: { fill: am5.color(0xd53f8c) }, value: 1 },
+              { name: "大阪辦事處", nodeSettings: { fill: am5.color(0xdb2777) }, value: 1 },
+              { name: "首爾辦事處", nodeSettings: { fill: am5.color(0xe53e3e) }, value: 1 },
+              { name: "釜山辦事處", nodeSettings: { fill: am5.color(0xed64a6) }, value: 1 },
+              { name: "香港辦事處", nodeSettings: { fill: am5.color(0xf472b6) }, value: 1 },
+              { name: "新加坡辦事處", nodeSettings: { fill: am5.color(0xf687b3) }, value: 1 },
+              { name: "吉隆坡辦事處", nodeSettings: { fill: am5.color(0xf896c0) }, value: 1 },
+              { name: "曼谷辦事處", nodeSettings: { fill: am5.color(0xf9a8d4) }, value: 1 },
+              { name: "胡志明市辦事處", nodeSettings: { fill: am5.color(0xfbb6ce) }, value: 1 },
+              { name: "雅加達辦事處", nodeSettings: { fill: am5.color(0xfbcfe8) }, value: 1 },
+              { name: "舊金山辦事處", nodeSettings: { fill: am5.color(0xfed7e2) }, value: 1 },
+              { name: "紐約辦事處", nodeSettings: { fill: am5.color(0xfce7f3) }, value: 1 },
+              { name: "洛杉磯辦事處", nodeSettings: { fill: am5.color(0xfad1e6) }, value: 1 },
+              { name: "法蘭克福辦事處", nodeSettings: { fill: am5.color(0xf7c2dd) }, value: 1 },
+              { name: "倫敦辦事處", nodeSettings: { fill: am5.color(0xf3b2d3) }, value: 1 }
+            ]
+          },
+          { value: 0.15, nodeSettings: { fill: am5.color(0xffffff) } }
+        ]
+      }];
+
+      series.data.setAll(data);
+      series.set("selectedDataItem", series.dataItems[0]);
+      series.appear(1000, 100);
+    }
+
+    function getTreeData(multilineScenic) {
+      return {
+        name: "觀光署",
+        children: [
+          {
+            name: "業務單位",
+            children: [
+              { name: "企劃組", value: 10 },
+              { name: "旅遊推廣組", value: 10 },
+              { name: "旅宿組", value: 10 },
+              { name: "景區發展組", value: 10 },
+              { name: "國際組", value: 10 },
+              { name: "數位行銷組", value: 10 }
+            ]
+          },
+          {
+            name: "幕僚單位",
+            children: [
+              { name: "秘書室", value: 8 },
+              { name: "人事室", value: 8 },
+              { name: "政風室", value: 8 },
+              { name: "主計室", value: 8 },
+              { name: "資訊室", value: 8 }
+            ]
+          },
+          {
+            name: "任務編組",
+            children: [
+              { name: "法制科", value: 6 },
+              { name: "公關科", value: 6 }
+            ]
+          },
+          {
+            name: multilineScenic ? "所屬機關\n(國家風景區管理處)" : "所屬機關 (國家風景區管理處)",
+            children: [
+              { name: "東北角及宜蘭海岸國家風景區管理處", value: 7 },
+              { name: "北海岸及觀音山國家風景區管理處", value: 7 },
+              { name: "參山國家風景區管理處", value: 7 },
+              { name: "日月潭國家風景區管理處", value: 7 },
+              { name: "阿里山國家風景區管理處", value: 7 },
+              { name: "雲嘉南濱海國家風景區管理處", value: 7 },
+              { name: "西拉雅國家風景區管理處", value: 7 },
+              { name: "茂林國家風景區管理處", value: 7 },
+              { name: "大鵬灣國家風景區管理處", value: 7 },
+              { name: "花東縱谷國家風景區管理處", value: 7 },
+              { name: "東部海岸國家風景區管理處", value: 7 },
+              { name: "澎湖國家風景區管理處", value: 7 },
+              { name: "馬祖國家風景區管理處", value: 7 }
+            ]
+          },
+          {
+            name: "駐外辦事處",
+            children: [
+              { name: "東京辦事處", value: 6 },
+              { name: "大阪辦事處", value: 6 },
+              { name: "首爾辦事處", value: 6 },
+              { name: "釜山辦事處", value: 6 },
+              { name: "香港辦事處", value: 6 },
+              { name: "新加坡辦事處", value: 6 },
+              { name: "吉隆坡辦事處", value: 6 },
+              { name: "曼谷辦事處", value: 6 },
+              { name: "胡志明市辦事處", value: 6 },
+              { name: "雅加達辦事處", value: 6 },
+              { name: "舊金山辦事處", value: 6 },
+              { name: "紐約辦事處", value: 6 },
+              { name: "洛杉磯辦事處", value: 6 },
+              { name: "法蘭克福辦事處", value: 6 },
+              { name: "倫敦辦事處", value: 6 }
+            ]
+          }
+        ]
+      };
+    }
+
+    // 2. 初始化力導向網路圖
+    function initForce() {
+      if (initialized.force) return;
+      initialized.force = true;
+
+      var root = am5.Root.new("chart-force");
+      root.setThemes([
+        am5themes_Animated.new(root),
+        am5themes_Adaptive.new(root, {
+          baseColor: 0x4150a0,
+          baseColor2: 0xf0825a,
+          count: 7,
+          mapShade: true,
+          keepContrast: true
+        }),
+        am5themes_ResponsiveMax.new(root)
+      ]);
+
+      var chart = root.container.children.push(am5.SerialChartContainer.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.verticalLayout
+      }));
+
+      var series = chart.series.push(am5hierarchy.ForceDirected.new(root, {
+        singleBranchOnly: false,
+        downDepth: 1,
+        initialDepth: 2,
+        valueField: "value",
+        categoryField: "name",
+        childDataField: "children",
+        centerStrength: 0.5,
+        minRadius: am5.percent(3.5),
+        maxRadius: am5.percent(10)
+      }));
+
+      series.circles.template.setAll({
+        shadowColor: am5.color(0x000000),
+        shadowOpacity: 0.3,
+        shadowBlur: 6,
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      });
+
+      series.labels.template.setAll({
+        fontSize: 13,
+        fontFamily: "Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif",
+        oversizedBehavior: "wrap",
+        textAlign: "center"
+      });
+
+      series.nodes.template.set("tooltipText", "{category}");
+
+      series.data.setAll([getTreeData(true)]);
+      series.set("selectedDataItem", series.dataItems[0]);
+      series.appear(1000, 100);
+    }
+
+    // 3. 初始化水平分割圖
+    function initPartition() {
+      if (initialized.partition) return;
+      initialized.partition = true;
+
+      var root = am5.Root.new("chart-partition");
+      root.setThemes([
+        am5themes_Animated.new(root),
+        am5themes_Adaptive.new(root, {
+          baseColor: 0x4150a0,
+          baseColor2: 0xf0825a,
+          count: 6,
+          mapShade: true,
+          keepContrast: true
+        }),
+        am5themes_ResponsiveMax.new(root)
+      ]);
+
+      var chart = root.container.children.push(am5.SerialChartContainer.new(root, {
+        width: am5.percent(100),
+        height: am5.percent(100),
+        layout: root.verticalLayout
+      }));
+
+      var series = chart.series.push(am5hierarchy.Partition.new(root, {
+        singleBranchOnly: false,
+        orientation: "horizontal",
+        downDepth: 10,
+        initialDepth: 10,
+        valueField: "value",
+        categoryField: "name",
+        childDataField: "children"
+      }));
+
+      function turnLabel(width, rectangle) {
+        var label = rectangle.dataItem && rectangle.dataItem.get("label");
+        if (label) {
+          label.set("rotation", rectangle.width() < 100 && rectangle.width() < rectangle.height() / 1.5 ? 90 : 0);
+        }
+      }
+      series.rectangles.template.on("width", turnLabel);
+      series.rectangles.template.on("height", turnLabel);
+
+      series.labels.template.setAll({
+        fontSize: 12,
+        fontFamily: "Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif",
+        oversizedBehavior: "truncate"
+      });
+
+      series.nodes.template.set("tooltipText", "{category}");
+
+      series.data.setAll([getTreeData(false)]);
+      series.set("selectedDataItem", series.dataItems[0]);
+      series.appear(1000, 100);
+    }
+
+    // 切換分頁函式
+    function switchTab(type) {
+      // 1. 切換按鈕狀態
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      document.getElementById("btn-" + type).classList.add("active");
+
+      // 2. 切換圖表顯示容器
+      document.querySelectorAll(".chart-container").forEach(div => div.classList.remove("active"));
+      document.getElementById("chart-" + type).classList.add("active");
+
+      // 3. 更新說明文字與圖例顏色
+      const config = chartConfigs[type];
+      document.getElementById("subtitle-desc").textContent = config.desc;
+      document.getElementById("dot-business").style.backgroundColor = config.colors.business;
+      document.getElementById("dot-staff").style.backgroundColor = config.colors.staff;
+      document.getElementById("dot-task").style.backgroundColor = config.colors.task;
+      document.getElementById("dot-scenic").style.backgroundColor = config.colors.scenic;
+      document.getElementById("dot-overseas").style.backgroundColor = config.colors.overseas;
+
+      // 4. 延遲初始化對應圖表（確保容器已是 display: block 且具備寬高）
+      try {
+        if (type === "sunburst") initSunburst();
+        if (type === "force") initForce();
+        if (type === "partition") initPartition();
+      } catch (e) {
+        console.error("圖表初始化錯誤:", e);
+      }
+    }
+
+    // 頁面載入完成後啟動預設圖表
+    window.addEventListener("DOMContentLoaded", function () {
+      switchTab("sunburst");
+    });
+  </script>
+</body>
+
+</html>
